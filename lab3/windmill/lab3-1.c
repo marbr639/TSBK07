@@ -20,15 +20,15 @@
 // Globals
 // Data would normally be read from files
 
+GLfloat pi = 3.14159265359;
 GLfloat t=0;
 
-
-GLfloat angle = 30;
+GLfloat angle = 0;
 GLuint myTex;
 GLuint mynewTex;
 
 mat4 projectionMatrix;
-Model *blade, *walls;
+Model *blade, *walls, *roof, *balcony;
 GLuint program;
 // vertex array object
 
@@ -49,7 +49,7 @@ void init(void)
 
 	dumpInfo();
 
-    projectionMatrix = frustum(-0.5, 0.5, 0.5, -0.5, 1.0, 300.0);
+   projectionMatrix = frustum(-0.5, 0.5, -0.5, 0.5, 1.0, 30.0);
 	// GL inits
 	glClearColor(0.2,10,0.5,0.5);
     glEnable(GL_CULL_FACE);
@@ -57,12 +57,13 @@ void init(void)
 	printError("GL inits");
 
 	// Load and compile shader
-	program = loadShaders("lab2-7.vert", "lab2-7.frag");
+	program = loadShaders("lab3-1.vert", "lab3-1.frag");
 	printError("init shader");
 	
     blade = LoadModelPlus("blade.obj");
     walls = LoadModelPlus("windmill-walls.obj");
-
+    roof = LoadModelPlus("windmill-roof.obj");
+    balcony = LoadModelPlus("windmill-balcony.obj");
 	// Upload geometry to the GPU:
 
 	
@@ -84,18 +85,46 @@ void display(void)
     angle+=0.01f;
  
 mat4 worldToView, d;
-    worldToView = lookAt(0,0,-3,0,0,-4,0,1,0);
-    d = Mult(worldToView, Mult(T(0,0.3,-4), Mult(Ry(angle), Mult(Rz(3.14), S(0.05,0.05,0.05)))));
+    worldToView = lookAt(2,0.92,-1,0,1,0,0,1,0);
+    d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
 
     glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     DrawModel(walls, program, "inPosition", "inNormal", NULL);
+
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    DrawModel(roof, program, "inPosition", "inNormal", NULL);
+
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    DrawModel(balcony, program, "inPosition", "inNormal", NULL);
  
-    d = Mult(worldToView, Mult(T(0,0,-30), Mult(Ry(angle), S(0.5,0.5,0.5))));
+    d = Mult(worldToView, Mult(T(0.45,0.92,0), Mult(Rx(angle), S(0.07,0.07,0.07))));
     
     glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
+
+    d = Mult(worldToView, Mult(T(0.45,0.92,0), Mult(Rx((pi/2)+angle), S(0.07,0.07,0.07))));
+    
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    DrawModel(blade, program, "inPosition", "inNormal", NULL);
+
+    d = Mult(worldToView, Mult(T(0.45,0.92,0), Mult(Rx(pi + angle), S(0.07,0.07,0.07))));
+    
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    DrawModel(blade, program, "inPosition", "inNormal", NULL);
+
+    d = Mult(worldToView, Mult(T(0.45,0.92,0), Mult(Rx( (3*pi/2) + angle), S(0.07,0.07,0.07))));
+    
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    DrawModel(blade, program, "inPosition", "inNormal", NULL);
+
+
 
 
 	printError("display");
