@@ -24,14 +24,20 @@ GLfloat pi = 3.14159265359;
 GLfloat t=0;
 
 GLfloat angle = 0;
-GLuint myTex;
-GLuint mynewTex;
 
+GLfloat groundvert[6*3] = {
+                        -0.5,0.0,-0.5,	
+						-0.5,0.0,-0.5,		
+						0.5,0.0,-0.5,		
+						-0.5,-0.0,-0.5,	
+						0.5,0.0,-0.5,
+						0.5,-0.0,-0.5,	};
+//uniform vec3 bladeColor;
 mat4 projectionMatrix;
 Model *blade, *walls, *roof, *balcony;
 GLuint program;
 // vertex array object
-
+unsigned int vertexArrayObjID;
 
 void OnTimer(int value)
 {
@@ -43,7 +49,7 @@ void OnTimer(int value)
 void init(void)
 {
 	// vertex buffer object, used for uploading the geometry
-
+unsigned int vertexBufferObjID;
 	// Reference to shader program
 //	GLuint program;
 
@@ -57,19 +63,27 @@ void init(void)
 	printError("GL inits");
 
 	// Load and compile shader
-	program = loadShaders("lab3-1.vert", "lab3-1.frag");
+	program = loadShaders("lab3-3.vert", "lab3-3.frag");
 	printError("init shader");
 	
     blade = LoadModelPlus("blade.obj");
     walls = LoadModelPlus("windmill-walls.obj");
     roof = LoadModelPlus("windmill-roof.obj");
     balcony = LoadModelPlus("windmill-balcony.obj");
+
+    // Allocate and activate Vertex Array Object
+	glGenVertexArrays(1, &vertexArrayObjID);
+	glBindVertexArray(vertexArrayObjID);
+	// Allocate Vertex Buffer Objects
+	glGenBuffers(1, &vertexBufferObjID);
+	
+	// VBO for vertex data
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjID);
+	glBufferData(GL_ARRAY_BUFFER, 6*sizeof(GLfloat), groundvert, GL_STATIC_DRAW);
+	glVertexAttribPointer(glGetAttribLocation(program, "inPosition"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
+	glEnableVertexAttribArray(glGetAttribLocation(program, "inPosition"));
 	// Upload geometry to the GPU:
-	LoadTGATextureSimple("maskros512.tga", &myTex);
-
-    glBindTexture(GL_TEXTURE_2D, myTex);
-
-	glUniform1i(glGetUniformLocation(program, "texUnit"), 0); 
+	
 
 
 	 
@@ -98,23 +112,33 @@ void display(void)
 	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
 	//glDrawArrays(GL_TRIANGLES, 0, 12*3);	// draw object
   //  glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
+
 
     t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
     angle+=0.01f;
  
     mat4 d, worldToView;
 
-    worldToView = lookAt(5*sin(r),0.92,5*cos(r),0,0,0,0,1,0);
-    d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
+    worldToView = lookAt(5*sin(r),1,5*cos(r),0,0,0,0,1,0);
+    d = Mult(worldToView, Mult(T(0,-4,-10), S(1,1,1)));
 
+   glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
 
-    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+   glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+
+    
+    glBindVertexArray(vertexArrayObjID);	// Select VAO
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+ d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
     DrawModel(walls, program, "inPosition", "inNormal", NULL);
 
-
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.0,0.0,0.0);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     DrawModel(roof, program, "inPosition", "inNormal", NULL);
 
@@ -122,7 +146,7 @@ void display(void)
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     DrawModel(balcony, program, "inPosition", "inNormal", NULL);
  
-
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.5,0.35,0.05);
     d = Mult(worldToView, Mult(T(0.45,0.92,0), Mult(Rx(angle), S(0.07,0.07,0.07))));  
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
