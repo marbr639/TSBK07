@@ -22,22 +22,19 @@
 
 GLfloat pi = 3.14159265359;
 GLfloat t=0;
+GLfloat r = 0;
+GLuint groundTex, boxTex;
 
 GLfloat angle = 0;
 
-GLfloat groundvert[6*3] = {
-                        -0.5,0.0,-0.5,	
-						-0.5,0.0,-0.5,		
-						0.5,0.0,-0.5,		
-						-0.5,-0.0,-0.5,	
-						0.5,0.0,-0.5,
-						0.5,-0.0,-0.5,	};
+mat4 trans;
 //uniform vec3 bladeColor;
+
 mat4 projectionMatrix;
-Model *blade, *walls, *roof, *balcony;
-GLuint program;
-// vertex array object
-unsigned int vertexArrayObjID;
+Model *ground, *walls, *blade, *balcony, *roof, *skybox;
+GLuint program, ground_shaders, skybox_shaders;
+
+
 
 void OnTimer(int value)
 {
@@ -46,51 +43,58 @@ void OnTimer(int value)
 }
 
 
+
+
+
 void init(void)
 {
 	// vertex buffer object, used for uploading the geometry
-unsigned int vertexBufferObjID;
+
 	// Reference to shader program
 //	GLuint program;
-
 	dumpInfo();
 
-   projectionMatrix = frustum(-0.5, 0.5, -0.5, 0.5, 1.0, 30.0);
+    projectionMatrix = frustum(-0.5, 0.5, -0.5, 0.5, 1.0, 30.0);
 	// GL inits
 	glClearColor(0.2,10,0.5,0.5);
-    glEnable(GL_CULL_FACE);
+   // glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 	printError("GL inits");
 
 	// Load and compile shader
 	program = loadShaders("lab3-3.vert", "lab3-3.frag");
+    ground_shaders = loadShaders("ground3-3.vert", "ground3-3.frag");
+    skybox_shaders = loadShaders("skybox3-3.vert", "skybox3-3.frag");
 	printError("init shader");
-	
-    blade = LoadModelPlus("blade.obj");
+	    
+    ground = LoadModelPlus("ground.obj");
     walls = LoadModelPlus("windmill-walls.obj");
+    blade = LoadModelPlus("blade.obj");
     roof = LoadModelPlus("windmill-roof.obj");
     balcony = LoadModelPlus("windmill-balcony.obj");
-
-    // Allocate and activate Vertex Array Object
-	glGenVertexArrays(1, &vertexArrayObjID);
-	glBindVertexArray(vertexArrayObjID);
-	// Allocate Vertex Buffer Objects
-	glGenBuffers(1, &vertexBufferObjID);
-	
-	// VBO for vertex data
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjID);
-	glBufferData(GL_ARRAY_BUFFER, 6*sizeof(GLfloat), groundvert, GL_STATIC_DRAW);
-	glVertexAttribPointer(glGetAttribLocation(program, "inPosition"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
-	glEnableVertexAttribArray(glGetAttribLocation(program, "inPosition"));
-	// Upload geometry to the GPU:
-	
+    skybox = LoadModelPlus("skybox.obj");
 
 
+// Ny kod sen det funkade senaste
+    glUseProgram(ground_shaders);
+    glActiveTexture(GL_TEXTURE0);
+    LoadTGATextureSimple("grass.tga", &groundTex);
+    glBindTexture(GL_TEXTURE_2D, groundTex);
+	glUniform1i(glGetUniformLocation(ground_shaders, "texUnit"), 0); 
+
+
+    glUseProgram(skybox_shaders);
+    glActiveTexture(GL_TEXTURE0);
+    LoadTGATextureSimple("SkyBox512.tga", &boxTex);
+    glBindTexture(GL_TEXTURE_2D, boxTex);
+	glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0); 
+
+//slut på tillagd kod
 	 
 	printError("init arrays");
 }
 
-GLfloat r = 0;
+
 
 void look(int x, int y)
 {
@@ -105,6 +109,11 @@ void look(int x, int y)
     
 }
 
+
+
+
+
+
 void display(void)
 {
 	printError("pre display");
@@ -113,27 +122,41 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-	//glDrawArrays(GL_TRIANGLES, 0, 12*3);	// draw object
-  //  glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
-
-
     t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
     angle+=0.01f;
+            
  
-    mat4 d, worldToView;
-
-    worldToView = lookAt(5*sin(r),1,5*cos(r),0,0,0,0,1,0);
-    d = Mult(worldToView, Mult(T(0,-4,-10), S(1,1,1)));
-
-   glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
-
-   glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    mat4 d, worldToView, viewRotation;
 
     
-    glBindVertexArray(vertexArrayObjID);	// Select VAO
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+    viewRotation = Ry(r);
+    worldToView = lookAt(5*sin(-r),1,5*cos(-r),0,0,0,0,1,0);
+    //rotation = Mult(Ry(r),worldToView);
 
- d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
+   glDisable(GL_DEPTH_TEST);
+   d = worldToView;
+   glUseProgram(skybox_shaders);
+   glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+   glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "modelViewMatrix"), 1, GL_TRUE,   viewRotation.m);
+   glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0);
+    glBindTexture(GL_TEXTURE_2D, boxTex);
+   DrawModel(skybox, skybox_shaders, "inPosition", NULL, "inTexCoord");
+
+    
+
+    glEnable(GL_DEPTH_TEST);
+    d = Mult(worldToView, Mult(T(0,0,0), S(100,100,100)));
+    glUseProgram(ground_shaders);
+   glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+   glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+   glUniform1i(glGetUniformLocation(ground_shaders, "texUnit"), 0);
+    glBindTexture(GL_TEXTURE_2D, groundTex);
+   DrawModel(ground, ground_shaders, "inPosition", "inNormal", "inTexCoord");
+
+
+    glUseProgram(program);
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
     DrawModel(walls, program, "inPosition", "inNormal", NULL);
@@ -167,12 +190,14 @@ void display(void)
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
 
-
-
 	printError("display");
 	
 	glutSwapBuffers();
 }
+
+
+
+
 
 int main(int argc, char *argv[])
 {
