@@ -30,7 +30,7 @@ GLfloat angle = 0;
 mat4 trans;
 //uniform vec3 bladeColor;
 
-mat4 projectionMatrix;
+mat4 projectionMatrix, modelToWorld, worldToView, modelViewMatrix;
 Model *ground, *walls, *blade, *balcony, *roof, *skybox;
 GLuint program, ground_shaders, skybox_shaders;
 
@@ -57,7 +57,6 @@ void init(void)
     projectionMatrix = frustum(-0.5, 0.5, -0.5, 0.5, 1.0, 30.0);
 	// GL inits
 	glClearColor(0.2,10,0.5,0.5);
-   // glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 	printError("GL inits");
 
@@ -101,15 +100,42 @@ void look(int x, int y)
     if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
     {
          r += 0.08;
+         
     }
     else if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
     {
         r -= 0.08;
     }
+    modelViewMatrix = Ry(r);
     
 }
 
-
+GLfloat stepx;
+GLfloat stepz = 5;
+GLfloat viewz = 0;
+void keyboard(char key, int x, int y)
+{
+    if (key == GLUT_KEY_LEFT)
+        stepx += 1;;
+        modelViewMatrix = T(1,0,0);
+    if (key == GLUT_KEY_RIGHT)
+        stepx -= 1;
+    modelViewMatrix = T(-1,0,0);
+    if (key == GLUT_KEY_DOWN)
+    {
+        stepz += 1;
+        viewz += 1;
+        modelViewMatrix = T(0,0,1);
+    }
+    if (key == GLUT_KEY_UP)
+    {
+        stepz -= 1;
+        viewz -= 1; 
+        modelViewMatrix = T(0,0,-1);
+    }
+        
+         
+}
 
 
 
@@ -129,34 +155,33 @@ void display(void)
     mat4 d, worldToView, viewRotation;
 
     
-    viewRotation = Ry(r);
-    worldToView = lookAt(5*sin(-r),1,5*cos(-r),0,0,0,0,1,0);
-    //rotation = Mult(Ry(r),worldToView);
+    viewRotation = T(stepx, 0, 0);
+    worldToView = lookAt(stepx,1,stepz,stepx,0,viewz,0,1,0);
 
-   glDisable(GL_DEPTH_TEST);
-   d = worldToView;
-   glUseProgram(skybox_shaders);
-   glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
-   glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "modelViewMatrix"), 1, GL_TRUE,   viewRotation.m);
-   glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0);
+    glDisable(GL_DEPTH_TEST);
+    d = worldToView;
+    glUseProgram(skybox_shaders);
+    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "modelViewMatrix"), 1, GL_TRUE,   viewRotation.m);
+    glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0);
     glBindTexture(GL_TEXTURE_2D, boxTex);
-   DrawModel(skybox, skybox_shaders, "inPosition", NULL, "inTexCoord");
+    DrawModel(skybox, skybox_shaders, "inPosition", NULL, "inTexCoord");
 
     
 
     glEnable(GL_DEPTH_TEST);
-    d = Mult(worldToView, Mult(T(0,0,0), S(100,100,100)));
+    d = Mult(Mult(worldToView, Mult(T(0,0,0), S(100,100,100))), viewRotation);
     glUseProgram(ground_shaders);
-   glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
-   glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "modelViewMatrix"), 1, GL_TRUE,   d.m);
-   glUniform1i(glGetUniformLocation(ground_shaders, "texUnit"), 0);
+    glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "modelViewMatrix"), 1, GL_TRUE,   d.m);
+    glUniform1i(glGetUniformLocation(ground_shaders, "texUnit"), 0);
     glBindTexture(GL_TEXTURE_2D, groundTex);
-   DrawModel(ground, ground_shaders, "inPosition", "inNormal", "inTexCoord");
+    DrawModel(ground, ground_shaders, "inPosition", "inNormal", "inTexCoord");
 
 
     glUseProgram(program);
     glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
-d = Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1)));
+    d = Mult(Mult(worldToView, Mult(T(0,0,0), S(0.1,0.1,0.1))),viewRotation);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_TRUE,   d.m);
     glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
     DrawModel(walls, program, "inPosition", "inNormal", NULL);
@@ -209,6 +234,7 @@ int main(int argc, char *argv[])
 	init ();
     OnTimer(0);
     glutPassiveMotionFunc(look);
+    glutKeyboardFunc(keyboard);
 	glutMainLoop();
 	return 0;
 }
