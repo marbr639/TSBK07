@@ -16,7 +16,7 @@ void main(void)
 {
 	mat3 normalMatrix = mat3(worldToView*modelToWorld); // Cheap normal matrix
 	exNormal = normalMatrix * inNormal; // Phong
-    exPosition = mat3(modelToWorld)*mat3(worldToView)*inPosition;
+    exPosition = mat3(worldToView)*mat3(modelToWorld)*inPosition; // For interpolation of vertex positions
     
 	gl_Position = projectionMatrix * worldToView* modelToWorld * vec4(inPosition, 1.0);
 }

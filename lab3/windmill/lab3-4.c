@@ -34,29 +34,23 @@ mat4 projectionMatrix, modelToWorld, worldToView, modelViewMatrix;
 Model *ground, *walls, *blade, *balcony, *roof, *skybox;
 GLuint program, ground_shaders, skybox_shaders;
 
+mat3 rotationy;
+vec3 lightSourcesColorsArr[] = {{1.0f, 0.0f, 0.0f}, // Red light
 
-vec3 lightSourcesColorsArr[] = { {1.0f, 0.0f, 0.0f}}; // Red light
+                                 {0.0f, 1.0f, 0.0f}, // Green light
 
-                         //        {0.0f, 1.0f, 0.0f}, // Green light
+                                 {0.0f, 0.0f, 1.0f}, // Blue light
 
-//                                 {0.0f, 0.0f, 1.0f}, // Blue light
+                                 {1.0f, 1.0f, 1.0f}}; // White light
+GLint isDirectional[] = {0,0,1,1};
+vec3 lightSourcesDirectionsPositions[] = {{10.0f, 5.0f, 0.0f}, // Red light, positional
 
-  //                               {1.0f, 1.0f, 1.0f} }; // White light
+                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
 
-GLint isDirectional[] = {0};
-//,0,1,1};
+                                       {-1.0f, 0.0f, 0.0f}, // Blue light along X
 
-vec3 lightSourcesDirectionsPositions[] = { {10.0f, 5.0f, 0.0f}}; // Red light, positional
-
-              //                         {0.0f, 5.0f, 10.0f}, // Green light, positional
-
-                //                       {-1.0f, 0.0f, 0.0f}, // Blue light along X
-
-                  //                     {0.0f, 0.0f, -1.0f} }; // White light along Z
-
+                                       {0.0f, 0.0f, -1.0f} }; // White 
 GLfloat specularExponent[] = {100.0, 200.0, 60.0, 50.0, 300.0, 150.0};
-
-
 void OnTimer(int value)
 {
     glutPostRedisplay();
@@ -69,6 +63,10 @@ void OnTimer(int value)
 
 void init(void)
 {
+	// vertex buffer object, used for uploading the geometry
+
+	// Reference to shader program
+//	GLuint program;
 	dumpInfo();
 
     projectionMatrix = frustum(-0.5, 0.5, -0.5, 0.5, 1.0, 30.0);
@@ -78,9 +76,9 @@ void init(void)
 	printError("GL inits");
 
 	// Load and compile shader
-	program = loadShaders("lab3-3.vert", "lab3-3.frag");
+	program = loadShaders("lab3-4.vert", "lab3-4.frag");
     ground_shaders = loadShaders("ground3-4.vert", "ground3-4.frag");
-    skybox_shaders = loadShaders("skybox3-4.vert", "skybox3-4.frag");
+    skybox_shaders = loadShaders("skybox3-3.vert", "skybox3-3.frag");
 	printError("init shader");
 	    
     ground = LoadModelPlus("ground.obj");
@@ -105,6 +103,14 @@ void init(void)
     glBindTexture(GL_TEXTURE_2D, boxTex);
 	glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0); 
 
+    glUseProgram(program);
+
+    
+    glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 4, &lightSourcesDirectionsPositions[0].x);
+    glUniform3fv(glGetUniformLocation(program, "lightSourcesColorArr"), 4, &lightSourcesColorsArr[0].x);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
+    glUniform1iv(glGetUniformLocation(program, "isDirectional"), 4, isDirectional);
+
 //slut på tillagd kod
 	 
 	printError("init arrays");
@@ -119,45 +125,43 @@ GLfloat viewx;
 void look(int x, int y)
 {
 
-
+    vec3 pos = {stepx,0,stepz};
     if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
        {
         r -= 0.025;
-        viewx = viewx - r*cos(r);
-        viewz = viewz - r*sin(r);
+        viewx = viewx - Norm(pos)*r*cos(r);
+        viewz = viewz - Norm(pos)*r*sin(r);
         }
    
-    else if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
+    if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
     {
          r += 0.025;
-        viewx = viewx + r*cos(r);
-        viewz = viewz + r*sin(r);
+        viewx = viewx + Norm(pos)*r*cos(r);
+        viewz = viewz + Norm(pos)*r*sin(r);
          
          
     }
+
+    glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2,glutGet(GLUT_WINDOW_HEIGHT)/2);
 }
 
 void keyboard(char key, int x, int y)
 {
     if (key == GLUT_KEY_LEFT)
-        stepx += 1;
-        viewx = stepx;
-        modelViewMatrix = T(1,0,0);
-    if (key == GLUT_KEY_RIGHT)
         stepx -= 1;
         viewx = stepx;
-    modelViewMatrix = T(-1,0,0);
+    if (key == GLUT_KEY_RIGHT)
+        stepx += 1;
+        viewx = stepx;;
     if (key == GLUT_KEY_DOWN)
     {
         stepz += 1;
         viewz += 1;
-        modelViewMatrix = T(0,0,1);
     }
     if (key == GLUT_KEY_UP)
     {
         stepz -= 1;
         viewz -= 1; 
-        modelViewMatrix = T(0,0,-1);
     }
     if (key == GLUT_KEY_LEFT_SHIFT)
 {
@@ -218,11 +222,6 @@ void display(void)
 
     glUseProgram(program);
 
-    //glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 1, &lightSourcesDirectionsPositions[0].x);
-    //glUniform3fv(glGetUniformLocation(program, "lightSourcesColorArr"), 1, &lightSourcesColorsArr[0].x);
-   // glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
-    //glUniform1iv(glGetUniformLocation(program, "isDirectional"), 1, isDirectional);
-
     modelToWorld = Mult(T(0,0,0), S(0.1,0.1,0.1));
     glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
@@ -268,12 +267,6 @@ void display(void)
 	printError("display");
 	
 	glutSwapBuffers();
-
-
-
-
-
-
 }
 
 

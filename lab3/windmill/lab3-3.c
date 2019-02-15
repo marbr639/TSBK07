@@ -103,22 +103,24 @@ GLfloat viewx;
 void look(int x, int y)
 {
 
-
+    vec3 pos = {stepx,0,stepz};
     if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
        {
         r -= 0.025;
-        viewx = viewx - r*cos(r);
-        viewz = viewz - r*sin(r);
+        viewx = viewx - Norm(pos)*r*cos(r);
+        viewz = viewz - Norm(pos)*r*sin(r);
         }
    
-    else if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
+    if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
     {
          r += 0.025;
-        viewx = viewx + r*cos(r);
-        viewz = viewz + r*sin(r);
+        viewx = viewx + Norm(pos)*r*cos(r);
+        viewz = viewz + Norm(pos)*r*sin(r);
          
          
     }
+
+    glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2,glutGet(GLUT_WINDOW_HEIGHT)/2);
 }
 
 void keyboard(char key, int x, int y)
