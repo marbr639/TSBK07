@@ -20,14 +20,14 @@ uniform sampler2D texUnit;
 
 void main(void)
 {
-    vec3 light, iDiff, iSpec, viewDir, reflectivity, normal;
+    vec3 light, iDiff, normal;
     vec3 intensity = vec3(0);
-    vec4 texVec;
+    vec4 texVec = vec4(0);
     float costheta, cosphi;
 
     for (int i = 0; i < 4; ++i)
     {
-        if (isDirectional[0])
+        if (isDirectional[i])
         {
     	    light = normalize(mat3(worldToView)*lightSourcesDirPosArr[i]);
 
@@ -39,16 +39,12 @@ void main(void)
         }
     
 
-        viewDir = -normalize(exPosition);
         normal = normalize(exNormal);
         costheta = max(dot(light,normal), 0.0);
         iDiff = normalize(lightSourcesColorArr[i]*costheta);
         iDiff = max(iDiff, 0.0);
-        reflectivity = 2*normal*dot(light, normal) - light;
-        cosphi = max(dot(reflectivity, viewDir), 0.0);
-        iSpec = lightSourcesColorArr[i]*pow(cosphi, 80);
-        iSpec = max(iSpec, 0.0);
-        intensity = intensity + iDiff + iSpec;
+      
+        intensity = intensity + iDiff;
     }
 
     texVec = texture(texUnit, 10000*exTexCoord);

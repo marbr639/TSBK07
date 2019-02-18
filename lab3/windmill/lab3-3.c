@@ -31,7 +31,7 @@ mat4 trans;
 //uniform vec3 bladeColor;
 
 mat4 projectionMatrix, modelToWorld, worldToView, modelViewMatrix;
-Model *ground, *walls, *blade, *balcony, *roof, *skybox;
+Model *bunny, *ground, *walls, *blade, *balcony, *roof, *skybox;
 GLuint program, ground_shaders, skybox_shaders;
 
 mat3 rotationy;
@@ -73,6 +73,7 @@ void init(void)
     roof = LoadModelPlus("windmill-roof.obj");
     balcony = LoadModelPlus("windmill-balcony.obj");
     skybox = LoadModelPlus("skybox.obj");
+    bunny = LoadModelPlus("bunny.obj");
 
 
 // Ny kod sen det funkade senaste
@@ -176,11 +177,11 @@ void display(void)
     
 
     glDisable(GL_DEPTH_TEST);
-    modelToWorld= Mult(T(0,-0.09,0),Ry(r));
+    modelToWorld= IdentityMatrix();
     glUseProgram(skybox_shaders);
     glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
-    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "worldToView"), 1, GL_TRUE,   IdentityMatrix().m);
+    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "worldToView"), 1, GL_TRUE,   worldToView.m);
     glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0);
     glBindTexture(GL_TEXTURE_2D, boxTex);
     DrawModel(skybox, skybox_shaders, "inPosition", NULL, "inTexCoord");
@@ -188,7 +189,7 @@ void display(void)
     
 
     glEnable(GL_DEPTH_TEST);
-    modelToWorld = Mult(T(0,0,0), S(100,100,100));
+    modelToWorld = S(100,100,100);
     glUseProgram(ground_shaders);
     glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(ground_shaders, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
@@ -240,7 +241,27 @@ void display(void)
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
+    modelToWorld = Mult(T(1,0.5,1), S(1,1,1));
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
+    DrawModel(bunny, program, "inPosition", "inNormal", NULL);
 
+ modelToWorld = Mult(T(4,0.5,1), S(1,1,1));
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
+    DrawModel(bunny, program, "inPosition", "inNormal", NULL);
+
+
+ modelToWorld = Mult(T(8,0.5,8), S(1,1,1));
+    glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
+    DrawModel(bunny, program, "inPosition", "inNormal", NULL);
 	printError("display");
 	
 	glutSwapBuffers();

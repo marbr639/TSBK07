@@ -13,7 +13,8 @@ out vec2 exTexCoord;
 void main(void)
 {
     
-	gl_Position = projectionMatrix * worldToView * modelToWorld * vec4(inPosition, 1.0);
+    mat3 newWorldToView = mat3(worldToView);
+	gl_Position = projectionMatrix * mat4(newWorldToView) * modelToWorld * vec4(inPosition, 1.0);
 
     exTexCoord = inTexCoord;
 }

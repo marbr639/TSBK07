@@ -108,7 +108,14 @@ void init(void)
     
     glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 4, &lightSourcesDirectionsPositions[0].x);
     glUniform3fv(glGetUniformLocation(program, "lightSourcesColorArr"), 4, &lightSourcesColorsArr[0].x);
-    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
+        //glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[0]);
+    glUniform1iv(glGetUniformLocation(program, "isDirectional"), 4, isDirectional);
+
+    glUseProgram(ground_shaders);
+
+    
+    glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 4, &lightSourcesDirectionsPositions[0].x);
+    glUniform3fv(glGetUniformLocation(program, "lightSourcesColorArr"), 4, &lightSourcesColorsArr[0].x);
     glUniform1iv(glGetUniformLocation(program, "isDirectional"), 4, isDirectional);
 
 //slut på tillagd kod
@@ -121,6 +128,28 @@ GLfloat stepx;
 GLfloat stepz = 5;
 GLfloat viewz = 0;
 GLfloat viewx;
+void look2(int x, int y)
+{
+
+    vec3 pos = {stepx,0,stepz};
+    if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
+       {
+        r -= 0.015;
+        stepx = 5*sin(r);
+        stepz = 5*cos(r);
+        }
+   
+    if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
+    {
+         r += 0.015;
+        stepx = 5*sin(r);
+        stepz = 5*cos(r);
+         
+         
+    }
+
+    glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2,glutGet(GLUT_WINDOW_HEIGHT)/2);
+}
 
 void look(int x, int y)
 {
@@ -128,14 +157,14 @@ void look(int x, int y)
     vec3 pos = {stepx,0,stepz};
     if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
        {
-        r -= 0.025;
+        r -= 0.015;
         viewx = viewx - Norm(pos)*r*cos(r);
         viewz = viewz - Norm(pos)*r*sin(r);
         }
    
     if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
     {
-         r += 0.025;
+         r += 0.015;
         viewx = viewx + Norm(pos)*r*cos(r);
         viewz = viewz + Norm(pos)*r*sin(r);
          
@@ -177,7 +206,18 @@ void keyboard(char key, int x, int y)
  }        
 }
 
-
+void look1(int x, int y)
+{
+    if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
+    {
+         r += 0.08;
+    }
+    else if ( x > glutGet(GLUT_WINDOW_WIDTH)/2)
+    {
+        r -= 0.08;
+    }
+    
+}
 
 void display(void)
 {
@@ -195,14 +235,14 @@ void display(void)
 
     
     worldToView = lookAt(stepx,1,stepz,viewx,1,viewz,0,1,0);
-    
+    //worldToView = lookAt(5*sin(r),0.92,5*cos(r),0,0,0,0,1,0);
 
     glDisable(GL_DEPTH_TEST);
-    modelToWorld= Mult(T(0,-0.09,0),Ry(r));
+    modelToWorld= IdentityMatrix();
     glUseProgram(skybox_shaders);
     glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
-    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "worldToView"), 1, GL_TRUE,   IdentityMatrix().m);
+    glUniformMatrix4fv(glGetUniformLocation(skybox_shaders, "worldToView"), 1, GL_TRUE,   worldToView.m);
     glUniform1i(glGetUniformLocation(skybox_shaders, "texUnit"), 0);
     glBindTexture(GL_TEXTURE_2D, boxTex);
     DrawModel(skybox, skybox_shaders, "inPosition", NULL, "inTexCoord");
@@ -226,44 +266,51 @@ void display(void)
     glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_TRUE,   projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[3]);
     glUniform3f(glGetUniformLocation(program, "texVec"), 0.9,0.9,0.9);
     DrawModel(walls, program, "inPosition", "inNormal", NULL);
 
     glUniform3f(glGetUniformLocation(program, "texVec"), 0.0,0.0,0.0);
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[0]);
     DrawModel(roof, program, "inPosition", "inNormal", NULL);
 
 
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[3]);
     DrawModel(balcony, program, "inPosition", "inNormal", NULL);
  
     glUniform3f(glGetUniformLocation(program, "texVec"), 0.5,0.35,0.05);
     modelToWorld =Mult(T(0.45,0.92,0), Mult(Rx(angle), S(0.07,0.07,0.07)));  
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
 
     modelToWorld = Mult(T(0.45,0.92,0), Mult(Rx((pi/2)+angle), S(0.07,0.07,0.07)));
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
 
     modelToWorld = Mult(T(0.45,0.92,0), Mult(Rx(pi + angle), S(0.07,0.07,0.07)));
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
 
     modelToWorld = Mult(T(0.45,0.92,0), Mult(Rx( (3*pi/2) + angle), S(0.07,0.07,0.07)));
     glUniformMatrix4fv(glGetUniformLocation(program, "modelToWorld"), 1, GL_TRUE,   modelToWorld.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "worldToView"), 1, GL_TRUE,   worldToView.m);
+    glUniform1f(glGetUniformLocation(program, "specularExponent"), specularExponent[4]);
     DrawModel(blade, program, "inPosition", "inNormal", NULL);
 
-
+                
 	printError("display");
 	
 	glutSwapBuffers();
@@ -282,7 +329,7 @@ int main(int argc, char *argv[])
 	glutDisplayFunc(display); 
 	init ();
     OnTimer(0);
-    glutPassiveMotionFunc(look);
+    glutPassiveMotionFunc(look2);
     glutKeyboardFunc(keyboard);
 	glutMainLoop();
 	return 0;
