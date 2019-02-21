@@ -10,13 +10,11 @@ uniform vec3 lightSourcesDirPosArr[4];
 
 uniform vec3 lightSourcesColorArr[4];
 
-uniform float specularExponent;
-
 uniform bool isDirectional[4];
 
-uniform mat4 worldToView;
+uniform mat4 worldView;
 
-uniform sampler2D texUnit;
+uniform sampler2D tex;
 
 void main(void)
 {
@@ -29,12 +27,12 @@ void main(void)
     {
         if (isDirectional[i])
         {
-    	    light = normalize(mat3(worldToView)*lightSourcesDirPosArr[i]);
+    	    light = normalize(mat3(worldView)*lightSourcesDirPosArr[i]);
 
         }   
         else 
         {
-            light = mat3(worldToView)*lightSourcesDirPosArr[i];
+            light = mat3(worldView)*lightSourcesDirPosArr[i];
             light = normalize(light - exPosition);
         }
     
@@ -47,7 +45,7 @@ void main(void)
         intensity = intensity + iDiff;
     }
 
-    texVec = texture(texUnit, 10000*exTexCoord);
+    texVec = texture(tex, exTexCoord);
 	outColor = vec4(intensity, 1.0)*texVec;
 }
 
