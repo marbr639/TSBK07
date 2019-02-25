@@ -14,6 +14,9 @@
 mat4 projectionMatrix;
 GLfloat r = 0;
 GLfloat s = 0;
+GLfloat angle = 0;
+TextureData ttex; // terrain
+GLfloat height(TextureData*, GLfloat, GLfloat);
 
 vec3 lightSourcesColorsArr[] = {{1.0f, 0.0f, 0.0f}, // Red light
 
@@ -31,6 +34,7 @@ vec3 lightSourcesDirectionsPositions[] = {{10.0f, 5.0f, 0.0f}, // Red light, pos
 
                                        {0.0f, 0.0f, -1.0f} }; // White 
 GLfloat specularExponent[] = {100.0, 200.0, 60.0, 50.0, 300.0, 150.0};
+GLfloat *vertexArray;
 
 Model* GenerateTerrain(TextureData *tex)
 {
@@ -38,7 +42,7 @@ Model* GenerateTerrain(TextureData *tex)
 	int triangleCount = (tex->width-1) * (tex->height-1) * 2;
 	int x, z;
 	
-	GLfloat *vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
+	vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *texCoordArray = malloc(sizeof(GLfloat) * 2 * vertexCount);
 	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
@@ -68,13 +72,13 @@ Model* GenerateTerrain(TextureData *tex)
             }
             else
             {
-			normalArray[(x + z * tex->width)*3 + 0] = 0.0;
-			normalArray[(x + z * tex->width)*3 + 1] = 1.0;
-			normalArray[(x + z * tex->width)*3 + 2] = 0.0;
+			    normalArray[(x + z * tex->width)*3 + 0] = 0.0;
+			    normalArray[(x + z * tex->width)*3 + 1] = 1.0;
+			    normalArray[(x + z * tex->width)*3 + 2] = 0.0;
             }
 // Texture coordinates. You may want to scale them.
-			texCoordArray[(x + z * tex->width)*2 + 0] = x; // (float)x / tex->width;
-			texCoordArray[(x + z * tex->width)*2 + 1] = z; // (float)z / tex->height;
+			texCoordArray[(x + z * tex->width)*2 + 0] = (float)x / tex->width;
+			texCoordArray[(x + z * tex->width)*2 + 1] = (float)z / tex->height;
 		}
 	for (x = 0; x < tex->width-1; x++)
 		for (z = 0; z < tex->height-1; z++)
@@ -90,7 +94,10 @@ Model* GenerateTerrain(TextureData *tex)
 		}
 	
 	// End of terrain generation
-	
+
+// Height function
+
+
 	// Create Model and upload to GPU:
 
 	Model* model = LoadDataToModel(
@@ -105,13 +112,52 @@ Model* GenerateTerrain(TextureData *tex)
 	return model;
 }
 
+GLfloat height(TextureData *tex, GLfloat x, GLfloat z)
+{
+
+    int x_floor = floor(x);
+    int z_floor = floor(z);
+    int x_ceil = x_floor + 1;
+    int z_ceil = z_floor + 1;
+
+GLfloat length_to_floor_trig = sqrt(((x - x_floor)*(x - x_floor)) + ((z - z_floor)*(z - z_floor)));
+GLfloat length_to_ceil_trig = sqrt(((x - x_ceil)*(x - x_ceil)) + ((z - z_ceil)*(z - z_ceil)));
+
+    int ind2 = (x_ceil + z_floor * tex->width)*3 +1;
+    int ind3 = (x_floor + z_ceil * tex->width)*3 +1;
+    
+    GLfloat p2 = vertexArray[ind2];
+    GLfloat p3 = vertexArray[ind3];
+
+    GLfloat p1, height_x, height_z, height_tot;
+
+    if(length_to_floor_trig < length_to_ceil_trig)
+    {
+    int ind1 = (x_floor + z_floor * tex->width)*3 +1;
+    p1 = vertexArray[ind1];
+    height_x = (x - x_floor)*(p2-p1);
+    height_z = (z - z_floor)*(p3 -p1);
+    }
+    else
+    {
+    int ind1 = (x_ceil - z_ceil * tex->width)*3 +1;
+    p1 = vertexArray[ind1];
+    height_x = (x_ceil - x)*(p3-p1);
+    height_z = (z_ceil - z)*(p2 - p1);
+    }
+    height_tot = p1 + height_x + height_z;
+
+    return height_tot;
+     
+
+}
+
 
 // vertex array object
 Model *m, *m2, *tm;
 // Reference to shader program
 GLuint program;
 GLuint tex1, tex2;
-TextureData ttex; // terrain
 
 GLfloat stepx;
 GLfloat stepz = 5;
@@ -124,11 +170,7 @@ vec3 up_vec = {0,1,0};
 void look(int x, int y)
 {
 
-    vec3 pos = cam;
     vec3 dirxz = {lookAtPoint.x - cam.x, lookAtPoint.y - cam.y, lookAtPoint.z - cam.z};
-    vec3 diryz = {lookAtPoint.x - cam.x, 0, lookAtPoint.z - cam.z};
-
-    vec3 cross = CrossProduct(diryz, up_vec);
 
    if (x < glutGet(GLUT_WINDOW_WIDTH)/2)
        {
@@ -136,8 +178,6 @@ void look(int x, int y)
 
 
         dirxz = MultVec3(Ry(r), dirxz);
-        //lookAtPoint.x = lookAtPoint.x - Norm(pos)*r*cos(r);
-        //lookAtPoint.z = lookAtPoint.z - Norm(pos)*r*sin(r);
         lookAtPoint.x = dirxz.x + cam.x;
         lookAtPoint.z = dirxz.z + cam.z;
         }
@@ -149,34 +189,8 @@ void look(int x, int y)
          dirxz = MultVec3(Ry(-r),dirxz);
         lookAtPoint.x = dirxz.x + cam.x;
         lookAtPoint.z = dirxz.z + cam.z;
-        //lookAtPoint.x = lookAtPoint.x+ Norm(pos)*r*cos(r);
-        //lookAtPoint.z = lookAtPoint.z + Norm(pos)*r*sin(r);
-    
-    }
-/* if ( y > glutGet(GLUT_WINDOW_HEIGHT)/2)
-    {
-        s = 0.008;
-
-        
-        diryz = MultVec3(ArbRotate(cross,s),diryz);
-        up_vec = CrossProduct(diryz, cross);
-        lookAtPoint.x = diryz.x + cam.x;
-        lookAtPoint.y = diryz.y + cam.y;
-        lookAtPoint.z = diryz.z + cam.z;
     }
 
-if ( y < glutGet(GLUT_WINDOW_HEIGHT)/2)
-    {
-        s = 0.008;
-       
-        diryz = MultVec3(ArbRotate(cross,-s),diryz);
-        up_vec = CrossProduct(diryz, cross);
-        lookAtPoint.x = diryz.x + cam.x;
-        lookAtPoint.y = diryz.y + cam.y;
-        lookAtPoint.z = diryz.z + cam.z;
-        }
-
-//	printf("%f %f\n", dirxz.x, dirxz.y );*/
     glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH)/2,glutGet(GLUT_WINDOW_HEIGHT)/2);
 }
 
@@ -240,6 +254,8 @@ void keyboard(char key, int x, int y)
 
 }
 
+
+
 void init(void)
 {
 	// GL inits
@@ -256,6 +272,9 @@ void init(void)
 	printError("init shader");
 	
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+
+    m = LoadModelPlus("groundsphere.obj");
+    
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
 	LoadTGATextureSimple("maskros512.tga", &tex1);
 	
@@ -297,8 +316,13 @@ void display(void)
 	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
+    angle += 0.01;
+    modelView = Mult(T(10*cos(angle),height(&ttex,10*cos(angle), 10*sin(angle)), 10*sin(angle)), S(1,1,1));
+    glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
+    DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 	printError("display 2");
 	
+
 	glutSwapBuffers();
 }
 
