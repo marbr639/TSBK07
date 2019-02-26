@@ -35,6 +35,7 @@ vec3 lightSourcesDirectionsPositions[] = {{10.0f, 5.0f, 0.0f}, // Red light, pos
                                        {0.0f, 0.0f, -1.0f} }; // White 
 GLfloat specularExponent[] = {100.0, 200.0, 60.0, 50.0, 300.0, 150.0};
 GLfloat *vertexArray;
+GLfloat *normalArray;
 
 Model* GenerateTerrain(TextureData *tex)
 {
@@ -43,7 +44,7 @@ Model* GenerateTerrain(TextureData *tex)
 	int x, z;
 	
 	vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
-	GLfloat *normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
+	normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *texCoordArray = malloc(sizeof(GLfloat) * 2 * vertexCount);
 	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
 	
@@ -52,9 +53,9 @@ Model* GenerateTerrain(TextureData *tex)
 		for (z = 0; z < tex->height; z++)
 		{
 // Vertex array. You need to scale this properly
-			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 30.0;
-			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
+			vertexArray[(x + z * tex->width)*3 + 0] = x / 0.01;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 20.0;
+			vertexArray[(x + z * tex->width)*3 + 2] = z / 0.01;
 // Normal vectors. You need to calculate these.
     
             if(( x + z * tex->width)*3 - 9 >= 0)
@@ -112,24 +113,142 @@ Model* GenerateTerrain(TextureData *tex)
 	return model;
 }
 
-GLfloat height(TextureData *tex, GLfloat x, GLfloat z)
+GLint get_quad(GLfloat x, GLfloat z)
+{
+    GLint quad;
+    if ((x > 0) && (z > 0))
+    {
+        quad = 1;
+    }
+    else if ((x > 0) && ( z < 0))
+    {
+        quad = 4;
+    }
+    else if ((x < 0) && (z <0))
+    {
+        quad = 3;
+    }
+    else
+    {
+        quad = 2;
+    }
+
+    return quad;
+}
+
+GLfloat get_triangle(TextureData *tex, GLfloat x, GLfloat z, GLint quad)
 {
 
+    GLint trig;
+    GLfloat temp_z;
+    if (quad == 1)
+    {
+        temp_z = -x*tex->width + tex->height;
+        if ( z > temp_z)
+        {
+            trig = 1;
+        }
+        else 
+        {
+            trig = 0;
+        }
+     }
+     else if (quad == 2)
+    {
+       temp_z = -x;
+       if ( z > temp_z)
+       {
+            trig = 1;
+       }
+        else
+        {
+            trig = 0;
+        }
+    }
+    else if ( quad == 3)
+    {
+        temp_z = -x*tex->width - tex->height;
+        if ( z > temp_z)
+        {
+            trig = 1;
+        }
+        else 
+        {
+            trig = 0; 
+        }
+     }
+     else
+     {
+        temp_z = -x;
+        if (z > temp_z)
+         {
+            trig = 1;
+        }
+        else 
+        {
+            trig = 0;
+        }
+     }
+
+return trig;
+}      
+              
+       
+GLfloat height(TextureData *tex, GLfloat x, GLfloat z)
+{
+    vec3 ind;
+    
+    GLint triangle = get_triangle(tex,x,z,get_quad(x,z));
     int x_floor = floor(x);
     int z_floor = floor(z);
-    int x_ceil = x_floor + 1;
-    int z_ceil = z_floor + 1;
+    //int x_ceil = x_floor + 1;
+    //int z_ceil = z_floor + 1;
+    if (triangle == 0)
+        {
+            ind.x = 0;
+            ind.y = 1;
+            ind.z = 2;
+        }
+    else
+        {
+            ind.x = 3;
+            ind.y = 4;
+            ind.z = 5;
+        }
 
-GLfloat length_to_floor_trig = sqrt(((x - x_floor)*(x - x_floor)) + ((z - z_floor)*(z - z_floor)));
-GLfloat length_to_ceil_trig = sqrt(((x - x_ceil)*(x - x_ceil)) + ((z - z_ceil)*(z - z_ceil)));
 
-    int ind2 = (x_ceil + z_floor * tex->width)*3 +1;
-    int ind3 = (x_floor + z_ceil * tex->width)*3 +1;
+//GLfloat length_to_floor_trig = sqrt(((x - x_floor)*(x - x_floor)) + ((z - z_floor)*(z - z_floor)));
+//GLfloat length_to_ceil_trig = sqrt(((x - x_ceil)*(x - x_ceil)) + ((z - z_ceil)*(z - z_ceil)));
+
+    //int ind2 = (x_ceil + z_floor * tex->width)*3 +1;
+    int ind_x = (x_floor + z_floor * tex->width)*3 + ind.x;
+    int ind_y = (x_floor + z_floor * tex->width)*3 + ind.y;
+    int ind_z = (x_floor + z_floor * tex->width)*3 + ind.z;
     
-    GLfloat p2 = vertexArray[ind2];
-    GLfloat p3 = vertexArray[ind3];
+    GLfloat n_x, n_y, n_z, p_x, p_y, p_z, height_y;
+    n_x = normalArray[ind_x];
+    n_y = normalArray[ind_y];
+    n_z = normalArray[ind_z];
+    p_x = vertexArray[ind_x];
+    p_y = vertexArray[ind_y];
+    p_z = vertexArray[ind_z];
 
-    GLfloat p1, height_x, height_z, height_tot;
+
+    
+    if (n_y == 0)
+    {
+        height_y = 0;
+    }
+    else
+    {
+    height_y = (((-n_x*(x - p_x) - n_z*(z - p_z))/n_y) + p_y)/40;
+    }
+    return height_y;
+    
+   // GLfloat p2 = vertexArray[ind2];
+    //GLfloat p3 = vertexArray[ind3];
+
+   /* GLfloat p1, height_x, height_z, height_tot;
 
     if(length_to_floor_trig < length_to_ceil_trig)
     {
@@ -148,7 +267,7 @@ GLfloat length_to_ceil_trig = sqrt(((x - x_ceil)*(x - x_ceil)) + ((z - z_ceil)*(
     height_tot = p1 + height_x + height_z;
 
     return height_tot;
-     
+     */
 
 }
 
@@ -164,8 +283,8 @@ GLfloat stepz = 5;
 GLfloat viewz = 0;
 GLfloat viewx;
 
-vec3 cam = {0, 1, 8};
-vec3 lookAtPoint = {2, 0, 2};
+vec3 cam = {0, 3, 8};
+vec3 lookAtPoint = {2, 3, 2};
 vec3 up_vec = {0,1,0};
 void look(int x, int y)
 {
@@ -246,10 +365,12 @@ void keyboard(char key, int x, int y)
     if (key == GLUT_KEY_LEFT_SHIFT)
  {
         cam.y = cam.y + 0.1;
+       lookAtPoint.y = lookAtPoint.y + 0.1;
     }
     if (key == GLUT_KEY_RIGHT_SHIFT)
  {
         cam.y = cam.y - 0.1;
+        lookAtPoint.y = lookAtPoint.y - 0.1;
     } 
 
 }
@@ -280,7 +401,7 @@ void init(void)
 	
     // Load terrain data
 	
-	LoadTGATextureData("fft-terrain.tga", &ttex);
+	LoadTGATextureData("44-terrain.tga", &ttex);
 	tm = GenerateTerrain(&ttex);
 
      glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 4, &lightSourcesDirectionsPositions[0].x);
@@ -317,9 +438,10 @@ void display(void)
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
     angle += 0.01;
-    modelView = Mult(T(10*cos(angle),height(&ttex,10*cos(angle), 10*sin(angle)), 10*sin(angle)), S(1,1,1));
+    modelView = T(5 + 5*cos(angle), height(&ttex,5 + 5*cos(angle),1), 1); 
     glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
+    printf("%f %d\n", height(&ttex,5 + 5*cos(angle),1));
 	printError("display 2");
 	
 
