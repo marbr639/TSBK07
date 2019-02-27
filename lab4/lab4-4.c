@@ -28,7 +28,7 @@ vec3 lightSourcesColorsArr[] = {{1.0f, 0.0f, 0.0f}, // Red light
 GLint isDirectional[] = {0,0,1,1};
 vec3 lightSourcesDirectionsPositions[] = {{10.0f, 5.0f, 0.0f}, // Red light, positional
 
-                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
+                                      {0.0f, 5.0f, 10.0f}, // Green light, positional
 
                                        {-1.0f, 0.0f, 0.0f}, // Blue light along X
 
@@ -53,19 +53,20 @@ Model* GenerateTerrain(TextureData *tex)
 		for (z = 0; z < tex->height; z++)
 		{
 // Vertex array. You need to scale this properly
-			vertexArray[(x + z * tex->width)*3 + 0] = x / 0.01;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 20.0;
-			vertexArray[(x + z * tex->width)*3 + 2] = z / 0.01;
+			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 40.0;
+			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
 // Normal vectors. You need to calculate these.
     
-            if(( x + z * tex->width)*3 - 9 >= 0)
+            if(( x > 0) && (z > 0))
             {
                 int c = (x + z * tex->width)*3;
-                int a = (x + z * tex->width)*3 - tex->width*3;
-                vec3 v1 = {vertexArray[c - 3], vertexArray[c-2], vertexArray[c-1]};
-                vec3 v2 = {vertexArray[a], vertexArray[a+1], vertexArray[a + 2]};
-                vec3 v3 = {vertexArray[a -3], vertexArray[a - 2], vertexArray[a -1]};
-
+                int a = (x + z * tex->width)*3 - tex->width*3; 
+                vec3 v1 = {vertexArray[c-3], vertexArray[c-2], vertexArray[c -1]};
+                vec3 v2 = {vertexArray[a], vertexArray[a+1], vertexArray[a+2]};
+                vec3 v3 = {vertexArray[a - 3], vertexArray[a-2], vertexArray[a-1]};
+                            
+                
                 vec3 normal = CalcNormalVector(v1,v2,v3);
                 normalArray[(x + z * tex->width)*3 + 0] = normal.x;
                 normalArray[(x + z * tex->width)*3 + 1] = normal.y;
@@ -77,6 +78,7 @@ Model* GenerateTerrain(TextureData *tex)
 			    normalArray[(x + z * tex->width)*3 + 1] = 1.0;
 			    normalArray[(x + z * tex->width)*3 + 2] = 0.0;
             }
+
 // Texture coordinates. You may want to scale them.
 			texCoordArray[(x + z * tex->width)*2 + 0] = (float)x / tex->width;
 			texCoordArray[(x + z * tex->width)*2 + 1] = (float)z / tex->height;
@@ -283,7 +285,7 @@ GLfloat stepz = 5;
 GLfloat viewz = 0;
 GLfloat viewx;
 
-vec3 cam = {0, 3, 8};
+vec3 cam = {0, 5, 8};
 vec3 lookAtPoint = {2, 3, 2};
 vec3 up_vec = {0,1,0};
 void look(int x, int y)
@@ -340,7 +342,7 @@ void keyboard(char key, int x, int y)
         }
     if (key == GLUT_KEY_DOWN)
     {
-        dir = ScalarMult(Normalize(dir),0.1);
+        dir = ScalarMult(Normalize(dir),0.5);
         dir.y = cam.y;
 
         cam.x = cam.x - dir.x;
@@ -354,7 +356,7 @@ void keyboard(char key, int x, int y)
         dir.x = lookAtPoint.x - cam.x;
         dir.y = cam.y;
         dir.z = lookAtPoint.z - cam.z;
-        dir = ScalarMult(Normalize(dir),0.1);
+        dir = ScalarMult(Normalize(dir),0.5);
         dir.y = cam.y;
 
         cam.x = dir.x + cam.x;
@@ -397,11 +399,11 @@ void init(void)
     m = LoadModelPlus("groundsphere.obj");
     
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("maskros512.tga", &tex1);
+	LoadTGATextureSimple("grass.tga", &tex1);
 	
     // Load terrain data
 	
-	LoadTGATextureData("44-terrain.tga", &ttex);
+	LoadTGATextureData("fft-terrain.tga", &ttex);
 	tm = GenerateTerrain(&ttex);
 
      glUniform3fv(glGetUniformLocation(program, "lightSourcesDirPosArr"), 4, &lightSourcesDirectionsPositions[0].x);
@@ -429,7 +431,7 @@ void display(void)
 	camMatrix = lookAt(cam.x, cam.y, cam.z,
 				lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
 				0.0, 1.0, 0.0);
-	modelView = Mult(IdentityMatrix(), S(0.1,0.1,0.1));
+	modelView = IdentityMatrix();
 	total = Mult(camMatrix, modelView);
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
@@ -441,7 +443,7 @@ void display(void)
     modelView = T(5 + 5*cos(angle), height(&ttex,5 + 5*cos(angle),1), 1); 
     glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
-    printf("%f %d\n", height(&ttex,5 + 5*cos(angle),1));
+  //  printf("%f %d\n", height(&ttex,5 + 5*cos(angle),1));
 	printError("display 2");
 	
 
