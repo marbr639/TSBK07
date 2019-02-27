@@ -145,7 +145,7 @@ GLfloat get_triangle(TextureData *tex, GLfloat x, GLfloat z, GLint quad)
     GLfloat temp_z;
     if (quad == 1)
     {
-        temp_z = -x*tex->width + tex->height;
+        temp_z = -x +1;
         if ( z > temp_z)
         {
             trig = 1;
@@ -169,7 +169,7 @@ GLfloat get_triangle(TextureData *tex, GLfloat x, GLfloat z, GLint quad)
     }
     else if ( quad == 3)
     {
-        temp_z = -x*tex->width - tex->height;
+        temp_z = -x -1;
         if ( z > temp_z)
         {
             trig = 1;
@@ -198,13 +198,14 @@ return trig;
        
 GLfloat height(TextureData *tex, GLfloat x, GLfloat z)
 {
-    vec3 ind;
-    
+    vec3 ind, va, vb, vc, normal;
+    int ind_xa, ind_ya, ind_za;
     GLint triangle = get_triangle(tex,x,z,get_quad(x,z));
     int x_floor = floor(x);
     int z_floor = floor(z);
-    //int x_ceil = x_floor + 1;
-    //int z_ceil = z_floor + 1;
+    int x_ceil = floor(x) + 1;
+    int z_ceil = floor(z) + 1;
+
     if (triangle == 0)
         {
             ind.x = 0;
@@ -218,58 +219,47 @@ GLfloat height(TextureData *tex, GLfloat x, GLfloat z)
             ind.z = 5;
         }
 
-
-//GLfloat length_to_floor_trig = sqrt(((x - x_floor)*(x - x_floor)) + ((z - z_floor)*(z - z_floor)));
-//GLfloat length_to_ceil_trig = sqrt(((x - x_ceil)*(x - x_ceil)) + ((z - z_ceil)*(z - z_ceil)));
-
-    //int ind2 = (x_ceil + z_floor * tex->width)*3 +1;
-    int ind_x = (x_floor + z_floor * tex->width)*3 + ind.x;
-    int ind_y = (x_floor + z_floor * tex->width)*3 + ind.y;
-    int ind_z = (x_floor + z_floor * tex->width)*3 + ind.z;
-    
-    GLfloat n_x, n_y, n_z, p_x, p_y, p_z, height_y;
-    n_x = normalArray[ind_x];
-    n_y = normalArray[ind_y];
-    n_z = normalArray[ind_z];
-    p_x = vertexArray[ind_x];
-    p_y = vertexArray[ind_y];
-    p_z = vertexArray[ind_z];
-
-
-    
-    if (n_y == 0)
+    if (triangle == 0)
     {
-        height_y = 0;
+    ind_xa = (x_floor + z_floor * tex->width)*3 + ind.x;
+    ind_ya = (x_floor + z_floor * tex->width)*3 + ind.y;
+    ind_za = (x_floor + z_floor * tex->width)*3 + ind.z;
     }
     else
     {
-    height_y = (((-n_x*(x - p_x) - n_z*(z - p_z))/n_y) + p_y)/40;
+    ind_xa = (x_ceil + z_ceil * tex->width)*3 + ind.x;
+    ind_ya = (x_ceil + z_ceil * tex->width)*3 + ind.y;
+    ind_za = (x_ceil + z_ceil * tex->width)*3 + ind.z;
     }
+    
+    int ind_xb = (x_ceil + z_floor * tex->width)*3 + ind.x;
+    int ind_yb = (x_ceil + z_floor * tex->width)*3 + ind.y;
+    int ind_zb = (x_ceil + z_floor * tex->width)*3 + ind.z;
+
+    int ind_xc = (x_floor + z_ceil * tex->width)*3 + ind.x;
+    int ind_yc = (x_floor + z_ceil * tex->width)*3 + ind.y;
+    int ind_zc = (x_floor + z_ceil * tex->width)*3 + ind.z;
+    
+    GLfloat height_y;
+
+    va.x = vertexArray[ind_xa];
+    va.y = vertexArray[ind_ya];
+    va.z = vertexArray[ind_za];
+    vb.x = vertexArray[ind_xb];
+    vb.y = vertexArray[ind_yb];
+    vb.z = vertexArray[ind_zb];
+    vc.x = vertexArray[ind_xc];
+    vc.y = vertexArray[ind_yc];
+    vc.z = vertexArray[ind_zc];
+
+
+    normal = CalcNormalVector(va,vb,vc);
+
+
+
+    height_y = (((-normal.x*(x - va.x) - normal.z*(z - va.z))/normal.y) + va.y);
+
     return height_y;
-    
-   // GLfloat p2 = vertexArray[ind2];
-    //GLfloat p3 = vertexArray[ind3];
-
-   /* GLfloat p1, height_x, height_z, height_tot;
-
-    if(length_to_floor_trig < length_to_ceil_trig)
-    {
-    int ind1 = (x_floor + z_floor * tex->width)*3 +1;
-    p1 = vertexArray[ind1];
-    height_x = (x - x_floor)*(p2-p1);
-    height_z = (z - z_floor)*(p3 -p1);
-    }
-    else
-    {
-    int ind1 = (x_ceil - z_ceil * tex->width)*3 +1;
-    p1 = vertexArray[ind1];
-    height_x = (x_ceil - x)*(p3-p1);
-    height_z = (z_ceil - z)*(p2 - p1);
-    }
-    height_tot = p1 + height_x + height_z;
-
-    return height_tot;
-     */
 
 }
 
@@ -440,10 +430,10 @@ void display(void)
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
     angle += 0.01;
-    modelView = T(5 + 5*cos(angle), height(&ttex,5 + 5*cos(angle),1), 1); 
+    modelView = T(10 + 5*cos(angle), height(&ttex,10 + 5*cos(angle),10 + 5*sin(angle)),10+ 5*sin(angle)); 
     glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
-  //  printf("%f %d\n", height(&ttex,5 + 5*cos(angle),1));
+   printf("%f %d\n", height(&ttex,10 + 5*cos(angle),10 + 5*sin(angle)));
 	printError("display 2");
 	
 
