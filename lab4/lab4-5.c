@@ -18,15 +18,15 @@ GLfloat angle = 0;
 TextureData ttex; // terrain
 GLfloat height(TextureData*, GLfloat, GLfloat);
 
-vec3 lightSourcesColorsArr[] = {{1.0f, 0.0f, 0.0f}, // Red light
+vec3 lightSourcesColorsArr[] = {//{1.0f, 0.0f, 0.0f}, // Red light
 
-                                 {0.0f, 1.0f, 0.0f}, // Green light
+                                 //{0.0f, 1.0f, 0.0f}, // Green light
 
-                                 {0.0f, 0.0f, 1.0f}, // Blue light
+                                 //{0.0f, 0.0f, 1.0f}, // Blue light
 
                                  {1.0f, 1.0f, 1.0f}}; // White light
-GLint isDirectional[] = {0,0,1,1};
-vec3 lightSourcesDirectionsPositions[] = {{10.0f, 5.0f, 0.0f}, // Red light, positional
+GLint isDirectional[] = {1};
+vec3 lightSourcesDirectionsPositions[] = {{0.0f, 1.0f, 0.0f}, // Red light, positional
 
                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
 
@@ -356,13 +356,13 @@ void keyboard(char key, int x, int y)
     }
     if (key == GLUT_KEY_LEFT_SHIFT)
  {
-        cam.y = cam.y + 0.1;
-       lookAtPoint.y = lookAtPoint.y + 0.1;
+        cam.y = cam.y + 1;
+       lookAtPoint.y = lookAtPoint.y + 1;
     }
     if (key == GLUT_KEY_RIGHT_SHIFT)
  {
-        cam.y = cam.y - 0.1;
-        lookAtPoint.y = lookAtPoint.y - 0.1;
+        cam.y = cam.y - 1;
+        lookAtPoint.y = lookAtPoint.y - 1;
     } 
 
 }
@@ -380,7 +380,7 @@ void init(void)
 	projectionMatrix = frustum(-0.1, 0.1, -0.1, 0.1, 0.2, 50.0);
 
 	// Load and compile shader
-	program = loadShaders("terrain.vert", "terrain.frag");
+	program = loadShaders("terrain4-5.vert", "terrain4-5.frag");
 	glUseProgram(program);
 	printError("init shader");
 	
@@ -388,9 +388,16 @@ void init(void)
 
     m = LoadModelPlus("groundsphere.obj");
     
-	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
+	glUniform1i(glGetUniformLocation(program, "tex1"), 0); // Texture unit 0
+	glUniform1i(glGetUniformLocation(program, "tex2"), 1); // Texture unit 0
 	LoadTGATextureSimple("grass.tga", &tex1);
-	
+    LoadTGATextureSimple("conc.tga", &tex2);
+
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, tex2);
+
     // Load terrain data
 	
 	LoadTGATextureData("fft-terrain.tga", &ttex);
@@ -421,19 +428,21 @@ void display(void)
 	camMatrix = lookAt(cam.x, cam.y, cam.z,
 				lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
 				0.0, 1.0, 0.0);
-	modelView = IdentityMatrix();
+	modelView = Mult(IdentityMatrix(), S(0.1,0.1,0.1));
 	total = Mult(camMatrix, modelView);
+
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
 	glUniformMatrix4fv(glGetUniformLocation(program, "worldView"), 1, GL_TRUE, camMatrix.m);
-	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+//	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
     angle += 0.01;
-    modelView = T(30 + 15*cos(angle), height(&ttex,30 + 15*cos(angle),30 + 15*sin(angle)),30+ 15*sin(angle)); 
+    modelView = Mult(S(0.1,0.1,0.1),Mult(T(30 + 15*cos(angle), height(&ttex,30 + 15*cos(angle),30 + 15*sin(angle)),30+ 15*sin(angle)), S(10,10,10))); 
+
     glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
-   printf("%f %d\n", height(&ttex,10 + 5*cos(angle),10 + 5*sin(angle)));
+//   printf("%f %d\n", height(&ttex,10 + 5*cos(angle),10 + 5*sin(angle)));
 	printError("display 2");
 	
 
