@@ -20,19 +20,20 @@ GLfloat height(TextureData*, GLfloat, GLfloat);
 
 vec3 lightSourcesColorsArr[] = {//{1.0f, 0.0f, 0.0f}, // Red light
 
-                                 //{0.0f, 1.0f, 0.0f}, // Green light
+                                // {0.0f, 1.0f, 0.0f}, // Green light
 
-                                 //{0.0f, 0.0f, 1.0f}, // Blue light
+                                // {0.0f, 0.0f, 1.0f}, // Blue light
 
                                  {1.0f, 1.0f, 1.0f}}; // White light
 GLint isDirectional[] = {1};
-vec3 lightSourcesDirectionsPositions[] = {{0.0f, 1.0f, 0.0f}, // Red light, positional
+vec3 lightSourcesDirectionsPositions[] = {{1.0f, 1.0f, 1.0f}, // Red light, positional
 
                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
 
                                        {-1.0f, 0.0f, 0.0f}, // Blue light along X
 
                                        {0.0f, 0.0f, -1.0f} }; // White 
+GLint isObject[] = {0,1};
 GLfloat specularExponent[] = {100.0, 200.0, 60.0, 50.0, 300.0, 150.0};
 GLfloat *vertexArray;
 GLfloat *normalArray;
@@ -54,7 +55,7 @@ Model* GenerateTerrain(TextureData *tex)
 		{
 // Vertex array. You need to scale this properly
 			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 40.0;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 20.0;
 			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
 // Normal vectors. You need to calculate these.
     
@@ -276,7 +277,7 @@ GLfloat viewz = 0;
 GLfloat viewx;
 
 vec3 cam = {0, 5, 8};
-vec3 lookAtPoint = {2, 3, 2};
+vec3 lookAtPoint = {20, 3, 2};
 vec3 up_vec = {0,1,0};
 void look(int x, int y)
 {
@@ -391,7 +392,7 @@ void init(void)
 	glUniform1i(glGetUniformLocation(program, "tex1"), 0); // Texture unit 0
 	glUniform1i(glGetUniformLocation(program, "tex2"), 1); // Texture unit 0
 	LoadTGATextureSimple("grass.tga", &tex1);
-    LoadTGATextureSimple("conc.tga", &tex2);
+    LoadTGATextureSimple("dirt.tga", &tex2);
 
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex1);
@@ -434,13 +435,15 @@ void display(void)
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
 	glUniformMatrix4fv(glGetUniformLocation(program, "worldView"), 1, GL_TRUE, camMatrix.m);
+    glUniform1f(glGetUniformLocation(program, "isObject"), isObject[0]);
 //	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
     angle += 0.01;
-    modelView = Mult(S(0.1,0.1,0.1),Mult(T(30 + 15*cos(angle), height(&ttex,30 + 15*cos(angle),30 + 15*sin(angle)),30+ 15*sin(angle)), S(10,10,10))); 
+    modelView = Mult(S(0.1,0.1,0.1),Mult(T(100 + 90*cos(angle), height(&ttex,100 + 90*cos(angle),100 + 90*sin(angle)),100+ 90*sin(angle)), S(10,10,10))); 
 
     glUniformMatrix4fv(glGetUniformLocation(program, "modelWorld"), 1, GL_TRUE, modelView.m);
+    glUniform1f(glGetUniformLocation(program, "isObject"), isObject[1]);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 //   printf("%f %d\n", height(&ttex,10 + 5*cos(angle),10 + 5*sin(angle)));
 	printError("display 2");

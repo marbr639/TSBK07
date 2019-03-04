@@ -14,6 +14,8 @@ uniform vec3 lightSourcesColorArr[4];
 
 uniform bool isDirectional[4];
 
+uniform bool isObject;
+
 uniform mat4 worldView;
 
 uniform sampler2D tex1;
@@ -26,7 +28,7 @@ void main(void)
     vec4 texVec = vec4(0);
     float costheta, cosphi;
 
-    for (int i = 0; i < 1; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         if (isDirectional[i])
         {
@@ -53,19 +55,18 @@ void main(void)
     vec3 ypos = vec3(0,1,0);
 
     
-
-    if ((dot(ypos, groundNormal) > 0.8) &&  (dot(ypos, groundPosition) > 5))
+    if (isObject)
+    {
+         texVec = texture(tex2, 10*exTexCoord);
+         outColor = vec4(intensity, 1.0)*texVec;
+    }
+    else if ((dot(ypos, groundPosition) < 0.6) && ((dot(xpos, groundPosition) < 150)) && (dot(zpos, groundPosition) < 150))
         {
-        texVec = texture(tex1, exTexCoord);
-        outColor = vec4(intensity, 1.0)*texVec;
+        outColor = vec4(0.3,0.46,1.0,0.0);
         }
-    else if (dot(ypos, groundPosition) < 0.7) 
+    else
         {
-        outColor = vec4(0.0,0.0,1.0,0.0);
-        }
-        else
-        {
-         texVec = texture(tex2, exTexCoord);
+         texVec = (dot(ypos, groundPosition)/8)*texture(tex1, 10*exTexCoord) + ((8 - dot(ypos, groundPosition))/8)*texture(tex2, 10*exTexCoord);
          outColor = vec4(intensity, 1.0)*texVec;
         }
 
